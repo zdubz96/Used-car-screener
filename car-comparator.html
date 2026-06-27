@@ -361,8 +361,20 @@ Clean title, one owner, regular oil changes at the dealer..."></textarea>
       </div>
     </div>
 
+    <!-- Export / Import (offline share, no size limit) -->
+    <div class="settings-section">
+      <div class="settings-section-title">⇄ Export / Import</div>
+      <div class="hint" style="margin-bottom:10px">No size limits, no account. <strong>Export</strong> your list to a file, send it to your partner, and they <strong>Import</strong> it. It <strong>merges</strong> by car — newer edits win, nothing is lost. (Document photos/PDFs aren't included; the analysis text is.)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="exportData()">⬇ Export to file</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('import-input').click()">⬆ Import from file</button>
+        <input id="import-input" type="file" accept="application/json,.json" style="display:none" onchange="importData(this.files[0]);this.value=''"/>
+      </div>
+      <div id="import-result" style="font-size:12px;margin-top:8px;line-height:1.5"></div>
+    </div>
+
     <div class="info-box" style="margin-bottom:14px">
-      <strong>Model:</strong> claude-sonnet-4-6 &nbsp;·&nbsp; <strong>Storage:</strong> Browser localStorage + JSONBin (if configured)
+      <strong>Storage:</strong> Browser localStorage + JSONBin (if configured). Export/Import works regardless of size.
     </div>
     <button class="btn btn-primary" style="width:100%;padding:12px" onclick="saveSettings()">Save</button>
   </div>
@@ -1306,6 +1318,36 @@ function openSettings(){
   document.getElementById('settings-modal').style.display='flex'
 }
 function closeSettings(){document.getElementById('settings-modal').style.display='none'}
+
+// ── Export / Import (offline sharing, no size limit) ──
+function exportData(){
+  const payload={type:'car-comparator-export',version:1,exportedAt:new Date().toISOString(),cars,assumptions:loadAssumptions()};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='car-deals-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const el=document.getElementById('import-result');if(el){el.style.color='#16a34a';el.textContent='✓ Exported '+cars.length+' car'+(cars.length===1?'':'s')+'. Send the downloaded file to your partner.'}
+}
+async function importData(file){
+  if(!file)return;
+  const el=document.getElementById('import-result');
+  try{
+    const data=JSON.parse(await file.text());
+    const incoming=Array.isArray(data)?data:(Array.isArray(data.cars)?data.cars:null);
+    if(!incoming)throw new Error('That doesn\'t look like an export file.');
+    const before=cars.length;
+    cars=mergeCars(cars,incoming);
+    saveCarsLS(cars);
+    const added=cars.length-before;
+    if(el){el.style.color='#16a34a';el.textContent='✓ Imported — '+added+' new car'+(added===1?'':'s')+', '+cars.length+' total (existing cars kept, newer edits won).';}
+    if(data.assumptions&&JSON.stringify(data.assumptions)!==JSON.stringify(loadAssumptions())&&confirm('This file also includes TCO assumptions that differ from yours. Use theirs (for an apples-to-apples comparison)?'))saveAssumptions(data.assumptions);
+    render();
+    pushToCloud(false);
+  }catch(e){if(el){el.style.color='#dc2626';el.textContent='Import failed: '+e.message}}
+}
+
 function saveSettings(){
   const k=document.getElementById('api-key-input').value.trim();
   const jbk=document.getElementById('jb-key-input').value.trim();
