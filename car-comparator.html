@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Car Deal Comparator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh}
+button{cursor:pointer;font-family:inherit}
+button:disabled{opacity:.45;cursor:not-allowed}
+textarea,input{font-family:inherit;font-size:14px}
+
+#header{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:40;padding:0 16px}
+.header-inner{max-width:1024px;margin:0 auto;height:56px;display:flex;align-items:center;gap:10px}
+.logo{font-weight:700;font-size:15px;flex:1}
+#main{max-width:1024px;margin:0 auto;padding:20px 16px}
+
+.btn{border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;transition:background .15s}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover:not(:disabled){background:#1d4ed8}
+.btn-danger{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5}.btn-danger:hover:not(:disabled){background:#fecaca}
+.btn-outline-blue{background:#fff;color:#2563eb;border:1px solid #bfdbfe}.btn-outline-blue:hover:not(:disabled){background:#eff6ff}
+.btn-ghost{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}.btn-ghost:hover:not(:disabled){background:#e2e8f0}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
+
+#view-toggle{display:flex;background:#f1f5f9;border-radius:8px;padding:3px;gap:2px}
+.view-btn{border:none;background:none;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;color:#64748b;transition:all .15s}
+.view-btn.active{background:#fff;color:#1e293b;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+
+#settings-btn{width:34px;height:34px;border:none;background:none;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center;color:#94a3b8;transition:background .15s}
+#settings-btn:hover{background:#f1f5f9}
+#settings-btn.warn{color:#f59e0b;background:#fffbeb}
+
+/* sync status pill */
+#sync-pill{display:none;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:9999px;border:1px solid}
+#sync-pill.ok{color:#16a34a;border-color:#86efac;background:#f0fdf4}
+#sync-pill.syncing{color:#2563eb;border-color:#bfdbfe;background:#eff6ff}
+#sync-pill.err{color:#dc2626;border-color:#fca5a5;background:#fef2f2}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+
+#empty{text-align:center;padding:80px 16px}
+#empty .emoji{font-size:56px;margin-bottom:16px}
+#empty h2{font-size:20px;font-weight:700;color:#475569;margin-bottom:8px}
+#empty p{color:#94a3b8;font-size:14px;max-width:340px;margin:0 auto 24px;line-height:1.6}
+.warn-notice{display:inline-flex;align-items:center;gap:6px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:8px 14px;font-size:13px;margin-bottom:16px}
+
+#cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+
+.car-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;overflow:hidden}
+.car-card.best-card{border-color:#34d399;box-shadow:0 0 0 1px #6ee7b7}
+.best-banner{background:#f0fdf4;border-bottom:1px solid #bbf7d0;padding:8px 14px;font-size:11px;font-weight:700;color:#166534;letter-spacing:.04em}
+.card-body{padding:16px}
+.card-header{display:flex;align-items:flex-start;gap:12px}
+.card-title{flex:1;min-width:0}
+.card-title h3{font-size:15px;font-weight:700;color:#0f172a;line-height:1.3}
+.card-loc{font-size:12px;color:#94a3b8;margin-top:2px}
+
+.score-ring{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;border:3px solid;flex-shrink:0}
+.score-high{color:#16a34a;border-color:#16a34a;background:#f0fdf4}
+.score-mid{color:#d97706;border-color:#d97706;background:#fffbeb}
+.score-low{color:#dc2626;border-color:#dc2626;background:#fef2f2}
+.score-none{color:#9ca3af;border-color:#d1d5db;background:#f9fafb}
+
+.price-row{margin-top:12px;display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
+.price-big{font-size:22px;font-weight:800;color:#0f172a}
+.price-market{font-size:13px;color:#94a3b8}
+.price-delta.below{color:#16a34a;font-weight:700}
+.price-delta.above{color:#dc2626;font-weight:700}
+
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.stat-box{background:#f8fafc;border-radius:8px;padding:7px 6px;text-align:center}
+.stat-label{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em}
+.stat-val{font-size:13px;font-weight:600;color:#1e293b;margin-top:2px}
+.stat-sub{font-size:10px;margin-top:1px}
+.text-green{color:#16a34a}.text-red{color:#dc2626}
+.title-clean{color:#16a34a;font-weight:700}
+.title-bad{color:#dc2626;font-weight:800}
+.title-warn{color:#d97706;font-weight:600}
+
+.flags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.flag{display:inline-block;padding:2px 7px;border-radius:9999px;font-size:11px;font-weight:600;background:#fee2e2;color:#991b1b}
+.flag.flag-yellow{background:#fef9c3;color:#854d0e}
+.flag.flag-green{background:#dcfce7;color:#166534}
+.flag.flag-yellow::before{content:"✓ "}
+.flag.flag-green::before{content:"✓ "}
+.summary{font-size:13px;color:#475569;line-height:1.6;margin-top:10px}
+
+.detail-row{font-size:13px;color:#475569;line-height:1.5}
+.detail-row strong{color:#374151}
+.section-title{font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+
+/* Action plan box (top-of-card game plan) */
+.action-plan{background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:11px 13px;margin-top:12px}
+.ap-head{font-size:12px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.ap-target{font-size:14px;color:#1e293b;margin-bottom:5px}
+.ap-target strong{color:#15803d;font-size:16px}
+.ap-save{font-size:12px;color:#94a3b8;font-weight:400}
+.ap-nego{font-size:13px;color:#334155;line-height:1.5;margin-bottom:6px}
+.ap-steps-label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.ap-steps ol{margin:0;padding-left:18px;font-size:13px;color:#334155;line-height:1.7}
+
+/* Collapsible sections */
+.sections{margin-top:12px;border-top:1px solid #f1f5f9;display:flex;flex-direction:column}
+.sect{border-bottom:1px solid #f1f5f9}
+.sect>summary{cursor:pointer;list-style:none;padding:10px 0;font-size:13px;font-weight:600;color:#334155;display:flex;align-items:center;gap:6px;user-select:none}
+.sect>summary::-webkit-details-marker{display:none}
+.sect>summary::after{content:'⌄';margin-left:auto;color:#94a3b8;font-size:15px;transition:transform .15s}
+.sect[open]>summary::after{transform:rotate(180deg)}
+.sect>summary:hover{color:#1e293b}
+.sect-body{padding:0 0 12px;display:flex;flex-direction:column;gap:8px}
+.questions-list{list-style:disc;padding-left:18px;font-size:13px;color:#475569;line-height:1.8}
+.score-breakdown{background:#f8fafc;border-radius:8px;padding:8px 10px;font-size:11px;color:#64748b;line-height:1.8}
+.notes-area{width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px;font-size:13px;color:#374151;resize:none;outline:none}
+.note-log{display:flex;flex-direction:column;gap:6px;margin-bottom:8px}
+.note-entry{background:#f8fafc;border-left:3px solid #93c5fd;border-radius:0 6px 6px 0;padding:6px 9px}
+.note-entry .note-ts{font-size:10px;color:#94a3b8;margin-bottom:2px}
+.note-entry .note-text{font-size:12px;color:#475569;line-height:1.5;white-space:pre-wrap}
+.notes-area:focus{box-shadow:0 0 0 2px #3b82f6;border-color:#3b82f6}
+
+/* Per-card chat */
+.chat-empty{font-size:12px;color:#94a3b8;line-height:1.5;padding:2px 0 8px}
+.chat-msgs{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding:2px 2px 8px}
+.chat-msg{display:flex}
+.chat-msg.chat-user{justify-content:flex-end}
+.chat-bubble{max-width:85%;font-size:13px;line-height:1.5;padding:7px 11px;border-radius:13px;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+.chat-user .chat-bubble{background:#2563eb;color:#fff;border-bottom-right-radius:3px}
+.chat-bot .chat-bubble{background:#f1f5f9;color:#1e293b;border-bottom-left-radius:3px}
+.chat-status{display:flex;align-items:center;gap:6px;font-size:12px;color:#2563eb;padding:2px 0 6px}
+.chat-input-row{display:flex;gap:6px;align-items:stretch}
+.chat-input{flex:1;border:1.5px solid #e2e8f0;border-radius:9px;padding:8px 10px;font-size:13px;resize:none;outline:none;font-family:inherit;max-height:120px;line-height:1.4}
+.chat-input:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.chat-send{align-self:stretch;white-space:nowrap}
+
+.card-actions{display:flex;gap:8px;margin-top:12px;border-top:1px solid #f1f5f9;padding-top:12px}
+.card-actions .btn{flex:1;text-align:center}
+
+#rec-banner{background:#f0fdf4;border:1.5px solid #86efac;border-radius:16px;padding:16px;margin-bottom:16px;display:flex;gap:12px}
+.rec-icon{font-size:28px}.rec-title{font-size:15px;font-weight:700;color:#14532d}
+.rec-score{font-size:11px;background:#dcfce7;color:#15803d;font-weight:700;padding:2px 8px;border-radius:9999px;margin-left:6px}
+.rec-body{font-size:13px;color:#166534;line-height:1.6;margin-top:4px}
+.rec-flags{font-size:12px;color:#92400e;margin-top:4px}
+.rec-plan{margin-top:8px;background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:9px 11px}
+.rec-plan-head{font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+.rec-plan-row{font-size:13px;color:#334155;line-height:1.5;margin-top:3px}
+.rec-plan-row strong{color:#0f172a}
+.rec-plan-label{display:inline-block;min-width:46px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.03em}
+
+#compare-wrap{overflow-x:auto;border-radius:14px;border:1px solid #e2e8f0;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+#compare-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+#compare-wrap th{background:#f8fafc;font-weight:700;font-size:11px;text-transform:uppercase;color:#64748b;padding:10px 14px;text-align:left;border-bottom:1px solid #e2e8f0;white-space:nowrap}
+#compare-wrap td{padding:9px 14px;border-bottom:1px solid #f1f5f9;white-space:nowrap}
+#compare-wrap tr:last-child td{border-bottom:none}
+#compare-wrap td:first-child,#compare-wrap th:first-child{position:sticky;left:0;z-index:5;background:#fff;min-width:130px}
+#compare-wrap th:first-child{background:#f8fafc;z-index:6}
+#compare-wrap tr:nth-child(even) td{background:#fcfcfd}
+#compare-wrap tr:nth-child(even) td:first-child{background:#f8fafc}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:600px){.modal-overlay{align-items:center;padding:20px}}
+.modal-box{background:#fff;width:100%;max-width:620px;border-radius:18px 18px 0 0;padding:20px;max-height:92vh;overflow-y:auto}
+@media(min-width:600px){.modal-box{border-radius:18px}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.modal-header h2{font-size:18px;font-weight:700}
+.modal-close{width:32px;height:32px;border:none;background:none;font-size:22px;color:#94a3b8;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#f1f5f9;color:#475569}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+.field label span{font-weight:400;color:#94a3b8}
+textarea.input,input.input{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;outline:none;transition:box-shadow .15s,border-color .15s;background:#fff}
+textarea.input:focus,input.input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+input[type=password].input{font-family:monospace}
+
+.dropzone{border:2px dashed #cbd5e1;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .15s}
+.dropzone:hover,.dropzone.drag{border-color:#3b82f6;background:#eff6ff}
+.dropzone-hint{font-size:13px;color:#94a3b8}
+.dropzone-hint span{color:#3b82f6;font-weight:600}
+.file-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.file-chip{display:flex;align-items:center;gap:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:3px 10px;font-size:12px;color:#1d4ed8}
+.file-chip button{background:none;border:none;color:#93c5fd;font-size:16px;line-height:1;padding:0}
+
+.status-bar{display:flex;align-items:center;gap:8px;background:#eff6ff;border-radius:8px;padding:10px 12px;font-size:13px;color:#1d4ed8;margin-bottom:10px}
+.error-bar{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;font-size:13px;color:#dc2626;margin-bottom:10px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #bfdbfe;border-top-color:#3b82f6;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.info-box{background:#f8fafc;border-radius:10px;padding:10px 12px;font-size:12px;color:#64748b;line-height:1.8}
+.info-box strong{color:#374151}
+
+/* Settings sections */
+.settings-section{border:1px solid #e2e8f0;border-radius:12px;padding:14px;margin-bottom:14px}
+.settings-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:12px}
+.sync-status-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.sync-ok{font-size:12px;color:#16a34a;font-weight:600}
+.sync-err{font-size:12px;color:#dc2626;font-weight:600}
+.hint{font-size:11px;color:#94a3b8;margin-top:5px;line-height:1.6}
+a.hint-link{color:#3b82f6;text-decoration:none}
+a.hint-link:hover{text-decoration:underline}
+.mini-label{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}
+select.input{appearance:auto;background:#fff;height:40px}
+
+/* ── TCO ── */
+.tco-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.tco-title{font-size:16px;font-weight:700;color:#0f172a}
+.tco-sub{font-size:12px;font-weight:400;color:#94a3b8;margin-left:4px}
+.tco-actions{display:flex;gap:8px}
+.tco-stale{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:9px 12px;font-size:12px;margin-bottom:12px;line-height:1.5}
+.tco-wrap td,.tco-wrap th{font-variant-numeric:tabular-nums}
+.tco-rowlabel{font-weight:600;color:#334155;font-size:13px}
+.tco-cell{text-align:right;font-size:13px;color:#1e293b}
+.tco-empty{color:#cbd5e1;text-align:right}
+.tco-clickable{cursor:pointer;text-decoration:underline;text-decoration-color:#cbd5e1;text-underline-offset:2px}
+.tco-clickable:hover{background:#eff6ff;color:#1d4ed8}
+.tco-total td{font-weight:800;color:#0f172a;border-top:2px solid #e2e8f0;font-size:14px;text-align:right}
+.tco-total td.tco-rowlabel{text-align:left}
+.tco-actionrow td{border-top:none;padding-top:8px}
+.stale-dot{color:#f59e0b;font-weight:800}
+.tco-foot{font-size:11px;color:#94a3b8;margin-top:10px;line-height:1.5}
+.tco-method{background:#f8fafc;border-radius:8px;padding:9px 11px;font-size:12px;color:#475569;line-height:1.5;margin-bottom:12px}
+.tco-detail-table{width:100%;border-collapse:collapse;font-size:13px}
+.tco-detail-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#94a3b8;padding:4px 8px;border-bottom:1px solid #e2e8f0}
+.tco-detail-table td{padding:8px;border-bottom:1px solid #f1f5f9;vertical-align:top;color:#334155}
+.tco-detail-table tfoot td{border-top:2px solid #e2e8f0;border-bottom:none;color:#0f172a}
+.tco-note{font-size:12px;color:#64748b;line-height:1.5}
+.refined-mark{font-size:10px;margin-left:3px;vertical-align:middle}
+.tco-refined{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;margin-bottom:10px}
+.tco-recalc{margin-top:16px;border-top:1px solid #e2e8f0;padding-top:14px}
+.tco-newinfo{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;border-radius:10px;padding:9px 12px;font-size:12px;margin-bottom:12px;line-height:1.5}
+.newinfo-dot{color:#2563eb;font-weight:800}
+.tco-flagged{background:#fffbeb}
+.tco-flagged:hover{background:#fef3c7}
+.sanity-mark{font-size:11px;margin-left:3px;vertical-align:middle;cursor:help}
+.tco-sanity{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:8px 11px;font-size:12px;line-height:1.5;margin-bottom:10px}
+.tco-sanity-note{background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:9px 12px;font-size:12px;margin-bottom:12px;line-height:1.5}
+.tco-ok-note{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:10px;padding:9px 12px;font-size:12px;margin-bottom:12px;line-height:1.5}
+
+/* ── Mobile ── */
+@media(max-width:640px){
+  #header{padding:0 12px}
+  .header-inner{height:auto;min-height:52px;gap:6px;flex-wrap:wrap;padding:8px 0}
+  .logo{font-size:14px;flex:1 0 100%;order:-1}
+  #view-toggle{order:2}
+  #refresh-btn{order:3}
+  .header-inner .btn-primary{order:4}
+  #settings-btn{order:5}
+  #main{padding:14px 12px}
+  #cards-grid{grid-template-columns:1fr;gap:14px}
+  .price-big{font-size:20px}
+  .modal-box{padding:16px}
+  .card-actions{flex-direction:column}
+  /* bigger touch targets */
+  .sect>summary{padding:13px 0}
+  .btn{padding:10px 14px}
+  .btn-sm{padding:8px 12px}
+}
+/* very narrow phones */
+@media(max-width:380px){
+  .stats-row{grid-template-columns:1fr 1fr}
+  .logo{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div class="header-inner">
+    <div class="logo">🚗 Car Deal Comparator</div>
+    <div id="sync-pill" style="display:none">
+      <div class="sync-dot"></div>
+      <span id="sync-pill-text">Synced</span>
+    </div>
+    <div id="view-toggle" style="display:none">
+      <button class="view-btn active" onclick="setView('cards')">Cards</button>
+      <button class="view-btn" onclick="setView('compare')">Compare</button>
+      <button class="view-btn" onclick="setView('tco')">TCO</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="refresh-btn" onclick="pullAndMerge(true)" style="display:none" title="Pull latest from shared list">↻ Refresh</button>
+    <button class="btn btn-primary btn-sm" onclick="openAddModal()">+ Add Car</button>
+    <button id="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
+  </div>
+</div>
+
+<div id="main"></div>
+
+<!-- Add Modal -->
+<div id="add-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2 id="add-modal-title">Add a Car</h2>
+      <button class="modal-close" onclick="closeAddModal()">×</button>
+    </div>
+    <div class="field">
+      <label>Listing text &amp; seller messages</label>
+      <textarea id="listing-text" class="input" rows="7"
+        placeholder="Paste the full listing — year, make, model, price, mileage, any seller messages, condition notes. More text = better analysis.
+
+Example:
+2018 Honda Accord Sport, 74k miles, $16,500
+Clean title, one owner, regular oil changes at the dealer..."></textarea>
+    </div>
+    <div id="seller-followup-field" class="field" style="display:none">
+      <label>What did you learn from the seller? <span>(updates the analysis)</span></label>
+      <textarea id="seller-followup" class="input" rows="4"
+        placeholder="e.g. Seller confirmed clean title in hand. Said the bumper dent happened in a parking lot, no airbag deployment. Willing to go down to $15,800. Carfax showed 2 owners not 1..."></textarea>
+    </div>
+    <div class="field">
+      <label>Documents <span>(optional — title photos, VIN reports, service records)</span></label>
+      <div id="dropzone" class="dropzone" onclick="document.getElementById('file-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleDrop(event)">
+        <div class="dropzone-hint">Drop images or PDFs, or <span>browse</span></div>
+        <div style="font-size:11px;color:#cbd5e1;margin-top:4px">JPG, PNG, WEBP, PDF</div>
+      </div>
+      <input id="file-input" type="file" multiple accept="image/*,.pdf" style="display:none" onchange="addFiles(this.files)"/>
+      <div id="file-chips" class="file-chips"></div>
+    </div>
+    <div id="status-bar" style="display:none" class="status-bar">
+      <span class="spinner"></span><span id="status-text"></span>
+    </div>
+    <div id="error-bar" style="display:none" class="error-bar"></div>
+    <button id="analyze-btn" class="btn btn-primary" style="width:100%;padding:12px" onclick="runAnalysis()">✨ Analyze this deal</button>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" onclick="closeSettings()">×</button>
+    </div>
+
+    <!-- Anthropic API key -->
+    <div class="settings-section">
+      <div class="settings-section-title">Anthropic API Key</div>
+      <input id="api-key-input" type="password" class="input" placeholder="sk-ant-…" onkeydown="if(event.key==='Enter')saveSettings()"/>
+      <div class="hint">Stored only in your browser. Sent only to api.anthropic.com. Each person needs their own key.</div>
+    </div>
+
+    <!-- Shared sync -->
+    <div class="settings-section">
+      <div class="settings-section-title">☁ Shared List (JSONBin)</div>
+      <div class="hint" style="margin-bottom:10px">
+        Set this up once, share the credentials with your partner, and you'll both see the same car list.
+        <br>1. Create a free account at <a class="hint-link" href="https://jsonbin.io" target="_blank">jsonbin.io</a>
+        <br>2. Create a new Bin with contents <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">[]</code>
+        <br>3. Copy your Master Key and Bin ID below
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>JSONBin Master Key</label>
+        <input id="jb-key-input" type="password" class="input" placeholder="$2a$10$…"/>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Bin ID</label>
+        <input id="jb-bin-input" type="text" class="input" placeholder="64abc123…"/>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="testSync()">Test connection</button>
+        <span id="sync-test-result" style="font-size:12px"></span>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-bottom:14px">
+      <strong>Model:</strong> claude-sonnet-4-6 &nbsp;·&nbsp; <strong>Storage:</strong> Browser localStorage + JSONBin (if configured)
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="saveSettings()">Save</button>
+  </div>
+</div>
+
+<!-- Assumptions Modal -->
+<div id="assumptions-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:520px">
+    <div class="modal-header">
+      <h2>TCO Assumptions</h2>
+      <button class="modal-close" onclick="closeAssumptions()">×</button>
+    </div>
+    <div class="hint" style="margin-bottom:14px">These inputs are applied <strong>identically to every car</strong> so the cost comparison stays apples-to-apples. Change them, then hit “Compute all” on the TCO tab to refresh.</div>
+    <div class="field">
+      <label>Yearly mileage</label>
+      <input id="as-mileage" type="number" class="input" />
+    </div>
+    <div class="field">
+      <label>Fuel price per gallon</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div><div class="mini-label">Regular</div><input id="as-regular" type="number" step="0.01" class="input"/></div>
+        <div><div class="mini-label">Mid</div><input id="as-mid" type="number" step="0.01" class="input"/></div>
+        <div><div class="mini-label">Premium</div><input id="as-premium" type="number" step="0.01" class="input"/></div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Insurance coverage</label>
+      <select id="as-insurance" class="input">
+        <option>Liability only</option>
+        <option>Liability + collision</option>
+        <option>Full coverage</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Exit option (drives depreciation basis)</label>
+      <select id="as-exit" class="input">
+        <option>Trade in/sell to dealer</option>
+        <option>Private party sale</option>
+        <option>Keep (no resale)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Years of ownership</label>
+      <input id="as-years" type="number" min="1" max="8" class="input" />
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:12px" onclick="saveAssumptionsForm()">Save assumptions</button>
+  </div>
+</div>
+
+<!-- TCO cell detail Modal -->
+<div id="tco-modal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-header">
+      <h2 id="tco-modal-title" style="font-size:16px">Cost detail</h2>
+      <button class="modal-close" onclick="closeTcoModal()">×</button>
+    </div>
+    <div id="tco-modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ── Storage keys ────────────────────────────────────────────────────────────
+const LS_CARS  = 'cdc_v3_cars';
+const LS_KEY   = 'cdc_v2_key';
+const LS_JB_K  = 'cdc_jb_key';
+const LS_JB_B  = 'cdc_jb_bin';
+const LS_ASSUM = 'cdc_tco_assumptions';
+
+// ── TCO assumptions (shared methodology inputs) ──
+const DEFAULT_ASSUMPTIONS={
+  yearlyMileage:6912,
+  fuelRegular:5.20,
+  fuelMid:5.50,
+  fuelPremium:5.80,
+  insuranceCoverage:'Liability only',
+  exitOption:'Trade in/sell to dealer',
+  years:4
+};
+function loadAssumptions(){try{return{...DEFAULT_ASSUMPTIONS,...JSON.parse(localStorage.getItem(LS_ASSUM)||'{}')}}catch{return{...DEFAULT_ASSUMPTIONS}}}
+function saveAssumptions(a){localStorage.setItem(LS_ASSUM,JSON.stringify(a))}
+
+function loadCars(){try{return migrateCars(JSON.parse(localStorage.getItem(LS_CARS)||'[]'))}catch{return[]}}
+// Bring older saved cars up to the current schema (legacy userNotes -> noteDraft)
+function migrateCars(arr){
+  return arr.map(c=>{
+    if(!Array.isArray(c.noteLog))c.noteLog=[];
+    if(c.noteDraft==null)c.noteDraft=(typeof c.userNotes==='string'?c.userNotes:'');
+    delete c.userNotes;
+    // stamp existing TCO with an input baseline so future seller-info changes are detectable
+    if(c.tco&&!c.tco.inputs)c.tco.inputs=tcoInputs(c);
+    return c;
+  });
+}
+function saveCarsLS(c){localStorage.setItem(LS_CARS,JSON.stringify(c))}
+function loadKey(){return localStorage.getItem(LS_KEY)||''}
+function saveKey(k){localStorage.setItem(LS_KEY,k)}
+function loadJBKey(){return localStorage.getItem(LS_JB_K)||''}
+function loadJBBin(){return localStorage.getItem(LS_JB_B)||''}
+function saveJB(k,b){localStorage.setItem(LS_JB_K,k);localStorage.setItem(LS_JB_B,b)}
+
+// ── Document storage (IndexedDB) — keeps uploaded files locally so they survive
+//    sessions and auto-reattach on re-analyze. Files are NOT put in the synced
+//    car list (keeps that small). Degrades gracefully if IndexedDB is unavailable.
+const FILES_DB='cdc_files_db',FILES_STORE='files';
+function idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open(FILES_DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(FILES_STORE))r.result.createObjectStore(FILES_STORE)};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}})}
+async function idbPutFiles(id,files){try{const db=await idbOpen();await new Promise((res,rej)=>{const tx=db.transaction(FILES_STORE,'readwrite');tx.objectStore(FILES_STORE).put(files,id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}catch(e){console.warn('File save unavailable:',e)}}
+async function idbGetFiles(id){try{const db=await idbOpen();return await new Promise((res,rej)=>{const tx=db.transaction(FILES_STORE,'readonly');const rq=tx.objectStore(FILES_STORE).get(id);rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error)})}catch(e){console.warn('File load unavailable:',e);return[]}}
+async function idbDelFiles(id){try{const db=await idbOpen();await new Promise((res,rej)=>{const tx=db.transaction(FILES_STORE,'readwrite');tx.objectStore(FILES_STORE).delete(id);tx.oncomplete=res;tx.onerror=()=>rej(tx.error)})}catch(e){console.warn(e)}}
+
+// ── State ────────────────────────────────────────────────────────────────────
+let cars=loadCars(),currentView='cards',editCarId=null,pendingFiles=[];
+const openSections=new Set(); // remembers which collapsible sections are expanded, across re-renders
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2);
+const fmt$=n=>n==null?'—':'$'+Math.round(n).toLocaleString();
+const fmtMi=n=>n==null?'—':n.toLocaleString()+' mi';
+const titleFor=c=>[c.year,c.make,c.model,c.trim].filter(Boolean).join(' ')||'Unknown Car';
+const getSorted=()=>[...cars].sort((a,b)=>(b.dealScore??-1)-(a.dealScore??-1));
+const getBestId=()=>getSorted()[0]?.id;
+function scoreClass(s){return s==null?'score-none':s>=70?'score-high':s>=50?'score-mid':'score-low'}
+function esc(s){return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+// ── Robust JSON parsing for model responses ──
+function stripFences(s){return String(s).trim().replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/,'').trim()}
+// Extract the first balanced {...} object, respecting string literals (handles trailing prose/citations)
+function balancedExtract(s){
+  const start=s.indexOf('{');if(start<0)return null;
+  let depth=0,inStr=false,escd=false;
+  for(let i=start;i<s.length;i++){
+    const ch=s[i];
+    if(inStr){if(escd)escd=false;else if(ch==='\\')escd=true;else if(ch==='"')inStr=false;}
+    else if(ch==='"')inStr=true;
+    else if(ch==='{')depth++;
+    else if(ch==='}'){depth--;if(depth===0)return s.slice(start,i+1);}
+  }
+  return s.slice(start); // unbalanced (truncated) — return best effort
+}
+function tryParseJSON(s){
+  const c=stripFences(s);
+  try{return JSON.parse(c)}catch{}
+  const b=balancedExtract(c);
+  if(b){try{return JSON.parse(b)}catch{}}
+  // light repair: insert missing commas between adjacent array elements / objects
+  const repaired=(b||c).replace(/}(\s*){/g,'},$1{').replace(/](\s*)\[/g,'],$1[').replace(/"(\s*\n\s*)"/g,'",$1"').replace(/,\s*([}\]])/g,'$1');
+  try{return JSON.parse(repaired)}catch{}
+  return null;
+}
+// Full pipeline: local parse → light repair → last-resort cheap "fix this JSON" model call
+async function robustJSON(text,apiKey){
+  const local=tryParseJSON(text);if(local)return local;
+  if(apiKey){
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4096,messages:[{role:'user',content:'The text below was meant to be a single valid JSON object but has a syntax error. Fix it and return ONLY the corrected raw JSON — no markdown, no commentary:\n\n'+text}]})});
+      if(res.ok){const d=await res.json();const t=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');const fixed=tryParseJSON(t);if(fixed)return fixed;}
+    }catch{}
+  }
+  return null;
+}
+function flagText(f){return typeof f==='string'?f:(f&&(f.text||f.flag||f.label||f.name))?(f.text||f.flag||f.label||f.name):''}
+// Normalize risk flags (supports old string[] and new {text,status}[]) → {open:[], addressed:[]}
+function normRisk(c){
+  const open=[],addressed=[];
+  (c.riskFlags||[]).forEach(f=>{
+    const t=flagText(f);if(!t)return;
+    const status=(f&&typeof f==='object')?f.status:'open';
+    (status==='addressed'?addressed:open).push(t);
+  });
+  return{open,addressed};
+}
+function greenList(c){return(Array.isArray(c.greenFlags)?c.greenFlags:[]).map(flagText).filter(Boolean)}
+// Migrate legacy single-note cars to a note log
+function noteLogOf(c){return Array.isArray(c.noteLog)?c.noteLog:[]}
+function fileToB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f)})}
+function mediaType(f){if(f.type)return f.type;const n=f.name.toLowerCase();if(n.endsWith('.pdf'))return'application/pdf';if(/\.(jpg|jpeg)$/.test(n))return'image/jpeg';if(n.endsWith('.png'))return'image/png';if(n.endsWith('.webp'))return'image/webp';return'image/jpeg'}
+
+// ── JSONBin sync ─────────────────────────────────────────────────────────────
+function syncEnabled(){return !!(loadJBKey()&&loadJBBin())}
+
+function setSyncPill(state,text){
+  const p=document.getElementById('sync-pill');
+  const t=document.getElementById('sync-pill-text');
+  if(!state){p.style.display='none';return}
+  p.style.display='flex';
+  p.className='';p.classList.add('sync-pill-base');
+  if(state==='ok'){p.style.cssText='display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:9999px;border:1px solid;color:#16a34a;border-color:#86efac;background:#f0fdf4'}
+  else if(state==='syncing'){p.style.cssText='display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:9999px;border:1px solid;color:#2563eb;border-color:#bfdbfe;background:#eff6ff'}
+  else{p.style.cssText='display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:9999px;border:1px solid;color:#dc2626;border-color:#fca5a5;background:#fef2f2'}
+  t.textContent=text||'';
+}
+
+async function jbGet(){
+  const res=await fetch(`https://api.jsonbin.io/v3/b/${loadJBBin()}/latest`,{headers:{'X-Master-Key':loadJBKey()}});
+  if(!res.ok)throw new Error('JSONBin read failed: '+res.status);
+  const d=await res.json();
+  return Array.isArray(d.record)?d.record:[];
+}
+
+async function jbPut(data){
+  const res=await fetch(`https://api.jsonbin.io/v3/b/${loadJBBin()}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':loadJBKey()},body:JSON.stringify(data)});
+  if(!res.ok)throw new Error('JSONBin write failed: '+res.status);
+}
+
+// Merge remote into local: remote wins on conflicts, keep union of IDs
+function mergeCars(local,remote){
+  const map=new Map();
+  local.forEach(c=>map.set(c.id,c));
+  remote.forEach(c=>{
+    const existing=map.get(c.id);
+    // remote wins if it's newer, or if local doesn't have it
+    if(!existing||c.updatedAt>existing.updatedAt) map.set(c.id,c);
+  });
+  return migrateCars([...map.values()]);
+}
+
+async function pushToCloud(showPill=true){
+  if(!syncEnabled())return;
+  if(showPill)setSyncPill('syncing','Syncing…');
+  try{
+    // pull first to avoid clobbering partner's changes, then merge, then push
+    const remote=await jbGet();
+    const merged=mergeCars(cars,remote);
+    await jbPut(merged);
+    cars=merged;saveCarsLS(cars);
+    if(showPill)setSyncPill('ok','Synced');
+  }catch(e){
+    console.error(e);
+    if(showPill)setSyncPill('err','Sync failed');
+  }
+}
+
+async function pullAndMerge(renderAfter=false){
+  if(!syncEnabled())return;
+  setSyncPill('syncing','Refreshing…');
+  try{
+    const remote=await jbGet();
+    cars=mergeCars(cars,remote);
+    saveCarsLS(cars);
+    setSyncPill('ok','Synced');
+    if(renderAfter)render();
+  }catch(e){
+    console.error(e);setSyncPill('err','Sync failed');
+  }
+}
+
+async function testSync(){
+  const k=document.getElementById('jb-key-input').value.trim();
+  const b=document.getElementById('jb-bin-input').value.trim();
+  const el=document.getElementById('sync-test-result');
+  if(!k||!b){el.style.color='#dc2626';el.textContent='Enter both fields first.';return}
+  el.style.color='#64748b';el.textContent='Testing…';
+  try{
+    const res=await fetch(`https://api.jsonbin.io/v3/b/${b}/latest`,{headers:{'X-Master-Key':k}});
+    if(!res.ok)throw new Error(res.status);
+    el.style.color='#16a34a';el.textContent='✓ Connected!';
+  }catch(e){
+    el.style.color='#dc2626';el.textContent='✗ Failed — check key and bin ID';
+  }
+}
+
+// ── Claude API ───────────────────────────────────────────────────────────────
+const SYSTEM=`You are an expert used-car deal analyzer helping a buyer in Seattle, WA compare cars from Facebook Marketplace.
+
+Given listing text, seller messages, and any uploaded documents (title photos, VIN/history reports, service records), you will:
+1. Extract all available car details from text and documents.
+2. Use web_search to find recent comparable listings (same year/make/model, similar mileage, same region when possible) to estimate market value.
+3. Use web_search to research model reliability, common failure points, and ownership cost notes for this specific year/model.
+4. Identify risk flags (concerns) and green flags (positive signals — e.g. below-market price, full service records, single owner, clean Carfax, low miles, recent major maintenance).
+5. Build an action plan: a target/walk-away price to aim for, a concrete negotiation strategy, and the immediate next steps.
+6. Generate specific questions to ask the seller based on missing or suspicious information.
+7. Calculate a deal score (0-100):
+   - Price vs market: 40pts max (at market=20; each 5% below=+4; each 5% above=-4; floor 0)
+   - Year/age: 20pts (2025=20, 2015=10, 2005=0, linear)
+   - Mileage: 20pts (at expected=10; each 10k below=+2; each 10k above=-2; 12k/yr baseline; floor 0 cap 20)
+   - Title/risk penalty: 0 to -40 (clean=0; lien/unknown=-10; rebuilt=-20; salvage=-40; -5 per extra major flag)
+   - Distance from Seattle: 5pts (<=50mi=5; 50-150mi=3; 150-300mi=1; >300mi=0)
+   - Clamp total to 0-100.
+
+WRITING STYLE — be terse. Short phrases, not sentences. summary: max 2 short sentences. reliability/knownIssues/accidents/serviceHistory: one short clause each. Flag text: max 8 words. sellerQuestions: max 12 words each. No filler, no hedging.
+
+RISK FLAGS use {"text":<concise concern>,"status":"open"} for active concerns. When new seller/buyer info resolves or mitigates a risk, do NOT delete it — set "status":"addressed" (it shows yellow and sorts below open flags). Add the clarification into the text, e.g. {"text":"Bumper dent — confirmed parking-lot, no airbag","status":"addressed"}.
+GREEN FLAGS are an array of plain short strings (NOT objects), e.g. ["$1,200 below market","Full dealer service records"].
+NO DUPLICATION: each fact appears in exactly ONE place. A point made in a risk flag must not be repeated in a green flag, the summary, or the action plan, and vice-versa. Flags are single distinct points, not restatements of each other.
+
+actionPlan: targetPrice = the number to aim for / walk away above (informed by market value and condition). negotiation = one concrete lever-based strategy. nextSteps = 2-4 short imperative actions (e.g. "Request VIN for history check", "Schedule pre-purchase inspection").
+
+Return ONLY valid JSON with no markdown fences:
+{"year":null,"make":null,"model":null,"trim":null,"askingPrice":null,"estimatedMarketValue":null,"marketValueSource":"","priceVsMarket":"unknown","priceDelta":null,"mileage":null,"expectedMileageForAge":null,"mileageAssessment":"unknown","location":null,"distanceFromChicago":null,"titleStatus":"unknown","owners":null,"vin":null,"accidents":null,"serviceHistory":"unknown","sellerType":"unknown","riskFlags":[{"text":"","status":"open"}],"greenFlags":[],"actionPlan":{"targetPrice":null,"negotiation":"","nextSteps":[]},"sellerQuestions":[],"reliability":"","knownIssues":"","dealScore":0,"scoreBreakdown":{"priceScore":0,"yearScore":0,"mileageScore":0,"riskPenalty":0,"distanceScore":0},"summary":"","sellerNotes":""}`;
+
+async function analyzeCar(apiKey,listingText,files,onStatus,sellerFollowup,previousAnalysis){
+  const isReanalyze=!!(sellerFollowup&&previousAnalysis);
+  let userText=listingText||'(No listing text provided)';
+  if(isReanalyze){
+    const prevClean={...previousAnalysis};delete prevClean.listingText;delete prevClean.noteDraft;delete prevClean.noteLog;delete prevClean.id;
+    userText+='\n\n---\nPREVIOUS ANALYSIS (JSON):\n'+JSON.stringify(prevClean,null,2);
+    userText+='\n\n---\nNEW INFORMATION FROM SELLER / BUYER NOTES:\n'+sellerFollowup;
+    userText+='\n\n---\nUpdate the analysis and deal score. If new info resolves a risk flag, set its status to "addressed" (keep it). If it reveals new risks or positives, add risk/green flags. Revise sellerQuestions to only things still unknown.';
+  }
+  const content=[{type:'text',text:userText}];
+  for(const f of files){
+    const b64=f.b64||await fileToB64(f);
+    const mt=f.type||mediaType(f);
+    if(mt==='application/pdf'){content.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}})}
+    else{content.push({type:'image',source:{type:'base64',media_type:mt,data:b64}})}
+  }
+  const tools=[{type:'web_search_20250305',name:'web_search'}];
+  let messages=[{role:'user',content}];
+  const call=async (msgs,extraTools)=>{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4096,system:SYSTEM,tools:extraTools||tools,messages:msgs})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+res.status)}
+    return res.json()
+  };
+  onStatus(isReanalyze?'Updating analysis with new info…':'Sending listing to Claude…');
+  let resp=await call(messages),iters=0;
+  // cap at 2 search rounds — covers market comps + reliability in one pass each
+  while(resp.stop_reason==='tool_use'&&iters<2){
+    iters++;onStatus('Searching for market data… ('+iters+'/2)');
+    const tus=resp.content.filter(b=>b.type==='tool_use');
+    const tr=tus.map(tu=>({type:'tool_result',tool_use_id:tu.id,content:'(web search executed server-side)'}));
+    messages=[...messages,{role:'assistant',content:resp.content},{role:'user',content:tr}];
+    resp=await call(messages)
+  }
+  // find the JSON in the response
+  const allText=resp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  if(!allText.trim())throw new Error('Claude returned no text. Please try again.');
+  function tryParse(str){
+    str=str.trim().replace(/^```json\s*/i,'').replace(/^```\s*/i,'').replace(/\s*```$/,'').trim();
+    try{return JSON.parse(str)}catch{
+      const m=str.match(/\{[\s\S]*\}/);
+      if(m){try{return JSON.parse(m[0])}catch{}}
+      return null;
+    }
+  }
+  const parsed=tryParse(allText);
+  if(parsed)return parsed;
+  // Fallback: ask Claude to extract just the JSON from its own response
+  onStatus('Cleaning up response…');
+  const fixResp=await call([
+    {role:'user',content:[{type:'text',text:'Extract and return ONLY the JSON object from this text. No markdown, no explanation, raw JSON only:\n\n'+allText}]}
+  ],[]);
+  const fixText=fixResp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  const fixed=tryParse(fixText);
+  if(fixed)return fixed;
+  throw new Error('Could not parse Claude\'s response. Try again or simplify the listing text.');
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render(){
+  const main=document.getElementById('main');
+  const toggle=document.getElementById('view-toggle');
+  const refreshBtn=document.getElementById('refresh-btn');
+  const s=getSorted();
+  const hasSyncSetup=syncEnabled();
+  refreshBtn.style.display=hasSyncSetup?'':'none';
+  if(!cars.length){toggle.style.display='none';main.innerHTML=emptyHTML();return}
+  toggle.style.display='flex';
+  const rec=cars.length>1?recHTML(s):'';
+  if(currentView==='compare'){main.innerHTML=rec+compareHTML(s)}
+  else if(currentView==='tco'){main.innerHTML=tcoHTML(s)}
+  else{main.innerHTML=rec+'<div id="cards-grid">'+s.map(c=>cardHTML(c,c.id===getBestId()&&cars.length>1)).join('')+'</div>'}
+}
+
+function emptyHTML(){
+  const hasKey=!!loadKey();
+  return`<div id="empty"><div class="emoji">🚗</div><h2>No cars yet</h2><p>Paste a Facebook Marketplace listing and let Claude analyze the deal — price vs market, risks, score, and questions to ask the seller.</p>${!hasKey?'<div class="warn-notice">⚠️ Set your Anthropic API key first</div><br><a href="#" onclick="openSettings();return false" style="color:#2563eb;font-size:13px;display:inline-block;margin-bottom:12px">Open Settings</a><br>':''}<button class="btn btn-primary" onclick="openAddModal()" style="margin-top:8px">+ Add your first car</button></div>`
+}
+
+function recHTML(s){
+  const best=s[0];if(!best?.dealScore)return'';
+  const runner=s[1];
+  const openFlags=normRisk(best).open;
+  return`<div id="rec-banner"><div class="rec-icon">🏆</div><div style="flex:1"><div><span class="rec-title">${esc(titleFor(best))}</span><span class="rec-score">Score ${best.dealScore}/100</span></div>${best.summary?'<div class="rec-body">'+esc(best.summary)+'</div>':''}${openFlags.length?'<div class="rec-flags">⚠ '+openFlags.map(esc).join(' · ')+'</div>':''}${planSummaryHTML(best)}${runner?.dealScore?'<div style="font-size:11px;color:#166534;margin-top:6px">Beats #2: '+esc(titleFor(runner))+' (score '+runner.dealScore+')</div>':''}</div></div>`
+}
+
+// Strategy summary (target price + negotiation + next steps) for the top banner
+function planSummaryHTML(c){
+  const a=c.actionPlan;if(!a)return'';
+  const steps=Array.isArray(a.nextSteps)?a.nextSteps.map(flagText).filter(Boolean):[];
+  if(a.targetPrice==null&&!a.negotiation&&!steps.length)return'';
+  let h='<div class="rec-plan"><div class="rec-plan-head">🎯 Strategy</div>';
+  if(a.targetPrice!=null)h+='<div class="rec-plan-row"><span class="rec-plan-label">Target</span> <strong>'+fmt$(a.targetPrice)+'</strong>'+(c.askingPrice&&a.targetPrice<c.askingPrice?' <span style="color:#15803d;font-weight:600">('+fmt$(c.askingPrice-a.targetPrice)+' under ask)</span>':'')+'</div>';
+  if(a.negotiation)h+='<div class="rec-plan-row"><span class="rec-plan-label">Tactic</span> '+esc(a.negotiation)+'</div>';
+  if(steps.length)h+='<div class="rec-plan-row"><span class="rec-plan-label">Next</span> '+steps.map(esc).join(' → ')+'</div>';
+  h+='</div>';
+  return h;
+}
+
+function cardHTML(c,isBest){
+  const tcls=c.titleStatus==='clean'?'title-clean':(c.titleStatus==='salvage'||c.titleStatus==='rebuilt')?'title-bad':'title-warn';
+  const mcls=c.mileageAssessment==='low'?'text-green':c.mileageAssessment==='high'?'text-red':'';
+  let deltaHTML='';
+  if(c.priceDelta!=null){const cls=c.priceDelta<0?'below':'above';const sym=c.priceDelta<0?'−':'+';deltaHTML=` <span class="price-delta ${cls}">(${sym}$${Math.abs(Math.round(c.priceDelta)).toLocaleString()})</span>`}
+  const{open,addressed}=normRisk(c);
+  const greens=greenList(c);
+  let flagSpans='';
+  open.forEach(t=>flagSpans+='<span class="flag">'+esc(t)+'</span>');
+  addressed.forEach(t=>flagSpans+='<span class="flag flag-yellow">'+esc(t)+'</span>');
+  greens.forEach(t=>flagSpans+='<span class="flag flag-green">'+esc(t)+'</span>');
+  const flagsHTML=flagSpans?'<div class="flags">'+flagSpans+'</div>':'';
+
+  // ── collapsible section contents ──
+  let vehicleInner='';
+  if(c.vin)vehicleInner+='<div class="detail-row"><strong>VIN:</strong> <span style="font-family:monospace;font-size:12px">'+esc(c.vin)+'</span></div>';
+  if(c.accidents)vehicleInner+='<div class="detail-row"><strong>Accidents:</strong> '+esc(c.accidents)+'</div>';
+  if(c.serviceHistory&&c.serviceHistory!=='unknown')vehicleInner+='<div class="detail-row"><strong>Service history:</strong> '+esc(c.serviceHistory)+'</div>';
+  if(c.sellerType&&c.sellerType!=='unknown')vehicleInner+='<div class="detail-row"><strong>Seller:</strong> <span style="text-transform:capitalize">'+esc(c.sellerType)+'</span></div>';
+  if(c.sellerNotes&&c.sellerNotes!=='N/A')vehicleInner+='<div class="detail-row"><strong>Seller notes:</strong> '+esc(c.sellerNotes)+'</div>';
+
+  let relInner='';
+  if(c.reliability)relInner+='<div class="detail-row" style="margin-bottom:6px"><strong>Reliability:</strong> '+esc(c.reliability)+'</div>';
+  if(c.knownIssues)relInner+='<div class="detail-row"><strong>Known issues:</strong> '+esc(c.knownIssues)+'</div>';
+  if(c.marketValueSource)relInner+='<div style="font-size:11px;color:#94a3b8;font-style:italic;margin-top:6px">Comp source: '+esc(c.marketValueSource)+'</div>';
+
+  const qInner=c.sellerQuestions?.length?'<ul class="questions-list">'+c.sellerQuestions.map(q=>'<li>'+esc(flagText(q))+'</li>').join('')+'</ul>':'';
+
+  const scoreInner=c.scoreBreakdown?'<div class="score-breakdown">Price '+c.scoreBreakdown.priceScore+'/40 · Year '+c.scoreBreakdown.yearScore+'/20 · Mileage '+c.scoreBreakdown.mileageScore+'/20 · Risk '+c.scoreBreakdown.riskPenalty+' · Distance '+c.scoreBreakdown.distanceScore+'/5</div>':'';
+
+  const notesInner=`${noteLogHTML(c)}<textarea class="notes-area" id="notes-${c.id}" rows="3" placeholder="e.g. Seller confirmed clean title. Willing to go to $15,800. Carfax showed 2 owners not 1…" oninput="saveDraft('${c.id}',this.value)">${esc(c.noteDraft||'')}</textarea><button class="btn btn-ghost btn-sm" id="quick-update-btn-${c.id}" style="margin-top:6px;width:100%" onclick="quickUpdate('${c.id}')">⚡ Log note &amp; update analysis</button><div id="quick-update-status-${c.id}" style="font-size:11px;color:#2563eb;margin-top:4px;display:none"></div>`;
+
+  const chatInner=`${chatHTML(c)}<div id="chat-status-${c.id}" class="chat-status" style="display:none"><span class="spinner"></span> Thinking…</div><div class="chat-input-row"><textarea class="chat-input" id="chat-input-${c.id}" rows="1" placeholder="Ask about this car…" oninput="saveChatDraft('${c.id}',this.value)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askCarQuestion('${c.id}')}">${esc(c.chatDraft||'')}</textarea><button class="btn btn-primary btn-sm chat-send" onclick="askCarQuestion('${c.id}')">Ask</button></div>`;
+
+  return`<div class="car-card${isBest?' best-card':''}" id="card-${c.id}">
+${isBest?'<div class="best-banner">⭐ BEST DEAL</div>':''}
+<div class="card-body">
+<div class="card-header"><div class="card-title"><h3>${esc(titleFor(c))}</h3><div class="card-loc">${esc(c.location||'Location unknown')}${c.distanceFromChicago?' · '+esc(c.distanceFromChicago):''}${c.docCount?' · 📎 '+c.docCount+' doc'+(c.docCount>1?'s':''):''}</div></div><div class="score-ring ${scoreClass(c.dealScore)}">${c.dealScore!=null?Math.round(c.dealScore):'?'}</div></div>
+<div class="price-row"><span class="price-big">${fmt$(c.askingPrice)}</span>${c.estimatedMarketValue!=null?'<span class="price-market">market: '+fmt$(c.estimatedMarketValue)+deltaHTML+'</span>':''}</div>
+<div class="stats-row"><div class="stat-box"><div class="stat-label">Mileage</div><div class="stat-val">${fmtMi(c.mileage)}</div>${c.mileageAssessment&&c.mileageAssessment!=='unknown'?'<div class="stat-sub '+mcls+'">'+esc(c.mileageAssessment)+'</div>':''}</div><div class="stat-box"><div class="stat-label">Title</div><div class="stat-val ${tcls}">${esc(c.titleStatus||'—')}</div></div><div class="stat-box"><div class="stat-label">Owners</div><div class="stat-val">${c.owners??'—'}</div></div></div>
+${actionPlanHTML(c)}
+${flagsHTML}
+${c.summary?'<div class="summary">'+esc(c.summary)+'</div>':''}
+<div class="sections">
+${sect(c.id,'vehicle','🔧 Vehicle details',vehicleInner)}
+${sect(c.id,'rel','📊 Reliability & known issues',relInner)}
+${sect(c.id,'questions','❓ Questions for seller',qInner)}
+${sect(c.id,'score','🧮 Score breakdown',scoreInner)}
+${sect(c.id,'notes','📝 Notes from seller conversations',notesInner)}
+${sect(c.id,'chat','💬 Ask about this car',chatInner)}
+</div>
+<div class="card-actions"><button class="btn btn-outline-blue btn-sm" onclick="reanalyze('${c.id}')">Full re-analyze</button><button class="btn btn-danger btn-sm" onclick="deleteCar('${c.id}')">Delete</button></div>
+</div></div>`
+}
+
+function compareHTML(s){
+  const bid=getBestId();
+  const rows=[
+    {label:'Score',fn:c=>`<strong style="color:${c.dealScore>=70?'#16a34a':c.dealScore>=50?'#d97706':c.dealScore!=null?'#dc2626':'#94a3b8'}">${c.dealScore??'?'}/100</strong>`},
+    {label:'Asking Price',fn:c=>fmt$(c.askingPrice)},
+    {label:'Market Value',fn:c=>fmt$(c.estimatedMarketValue)},
+    {label:'vs Market',fn:c=>c.priceDelta!=null?`<span style="color:${c.priceDelta<0?'#16a34a':'#dc2626'};font-weight:700">${c.priceDelta<0?'−':'+'}$${Math.abs(Math.round(c.priceDelta)).toLocaleString()}</span>`:'—'},
+    {label:'Mileage',fn:c=>fmtMi(c.mileage)},
+    {label:'Exp. Mileage',fn:c=>fmtMi(c.expectedMileageForAge)},
+    {label:'Title',fn:c=>`<span class="${c.titleStatus==='clean'?'title-clean':(c.titleStatus==='salvage'||c.titleStatus==='rebuilt')?'title-bad':'title-warn'}">${esc(c.titleStatus||'—')}</span>`},
+    {label:'Owners',fn:c=>c.owners??'—'},
+    {label:'Seller Type',fn:c=>c.sellerType?`<span style="text-transform:capitalize">${esc(c.sellerType)}</span>`:'—'},
+    {label:'Risk Flags',fn:c=>{const{open,addressed}=normRisk(c);if(!open.length&&!addressed.length)return'<span style="color:#16a34a;font-size:12px">None</span>';let h=open.length?`<span style="color:#dc2626;font-weight:600">${open.length} open</span>`:'';if(addressed.length)h+=(h?' · ':'')+`<span style="color:#854d0e;font-weight:600">${addressed.length} addressed</span>`;return h}},
+    {label:'Green Flags',fn:c=>{const g=greenList(c);return g.length?`<span style="color:#16a34a;font-weight:600">${g.length}</span>`:'—'}},
+    {label:'Location',fn:c=>esc(c.location||'—')},
+    {label:'Distance',fn:c=>esc(c.distanceFromChicago||'—')},
+  ];
+  return`<div id="compare-wrap"><table><thead><tr><th>Field</th>${s.map(c=>`<th style="min-width:160px">${c.id===bid?'⭐ ':''} ${esc([c.year,c.make,c.model].filter(Boolean).join(' ')||'Car')}</th>`).join('')}</tr></thead><tbody>${rows.map(row=>`<tr><td style="color:#64748b;font-size:12px;font-weight:600">${row.label}</td>${s.map(c=>`<td>${row.fn(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
+}
+
+// ── TCO (Total Cost of Ownership) ─────────────────────────────────────────────
+const TCO_BUCKETS=[
+  {key:'maintenance',label:'Maintenance'},
+  {key:'fuel',label:'Fuel'},
+  {key:'registration',label:'Registration'},
+  {key:'tax',label:'Tax (RTA/excise)'},
+  {key:'insurance',label:'Insurance'},
+  {key:'depreciation',label:'Depreciation'},
+];
+const tcoComputing=new Set();
+function bucketYears(b){return b&&Array.isArray(b.perYear)?b.perYear.map(p=>Number(p.amount)||0):[]}
+function bucketAvg(b){const y=bucketYears(b);return y.length?y.reduce((a,x)=>a+x,0)/y.length:null}
+function tcoAvgYearly(tco){if(!tco?.buckets)return null;return TCO_BUCKETS.reduce((sum,bk)=>sum+(bucketAvg(tco.buckets[bk.key])||0),0)}
+function tcoIsStale(c,a){return c.tco&&JSON.stringify(c.tco.assumptions)!==JSON.stringify(a)}
+// Snapshot of the car fields the TCO depends on — used to detect when seller info changed
+function tcoInputs(c){return {year:c.year,make:c.make,model:c.model,trim:c.trim,mileage:c.mileage,askingPrice:c.askingPrice,estimatedMarketValue:c.estimatedMarketValue,titleStatus:c.titleStatus,reliability:c.reliability,knownIssues:c.knownIssues,notes:noteLogOf(c).map(n=>n.text).join(' | ')}}
+function tcoInputsChanged(c){return !!(c.tco&&c.tco.inputs&&JSON.stringify(c.tco.inputs)!==JSON.stringify(tcoInputs(c)))}
+function tcoInputDiff(c){
+  const old=c.tco?.inputs||{},cur=tcoInputs(c),ch=[];
+  for(const k of Object.keys(cur)){
+    if(JSON.stringify(old[k])!==JSON.stringify(cur[k])){
+      const ov=old[k]==null||old[k]===''?'(none)':old[k];
+      const nv=cur[k]==null||cur[k]===''?'(none)':cur[k];
+      ch.push(`• ${k}: ${ov} → ${nv}`);
+    }
+  }
+  return ch.join('\n');
+}
+
+function tcoSystemPrompt(a){
+  return `You are a meticulous used-car Total Cost of Ownership (TCO) estimator for a buyer in Seattle, WA (King County, RTA district). You receive ONE car's details and estimate ownership cost for each of the next ${a.years} years, starting now. Use IDENTICAL methodology for every car so results are directly comparable. Fixed buyer assumptions:
+- Annual mileage: ${a.yearlyMileage} miles
+- Fuel prices/gal: Regular $${a.fuelRegular}, Mid $${a.fuelMid}, Premium $${a.fuelPremium} (use the grade the car actually requires)
+- Insurance coverage: ${a.insuranceCoverage}
+- Exit option (depreciation basis): ${a.exitOption}
+
+Compute SIX buckets, each a per-year array of exactly ${a.years} entries (year 1..${a.years}):
+1. maintenance — Given make/model reliability, current mileage & age, list scheduled + wear work expected EACH year (oil, tires, brakes, fluids, belts, known-issue repairs) and sum realistic Seattle indie-shop parts+labor. Older/higher-mileage/less-reliable = higher.
+2. fuel — annualMiles ÷ EPA combined MPG × price for the car's required grade. State MPG & grade. ~Constant yearly.
+3. registration — WA annual registration: base + weight fee + $75 transportation fee + EV ($225)/hybrid ($75) fee if applicable. ~Constant.
+4. tax — WA RTA excise/MVET billed annually ≈1.1% of the vehicle's depreciated value that year; declines yearly.
+5. insurance — Annual premium for "${a.insuranceCoverage}" scaled to car value/type. ~Constant, may dip as value falls.
+6. depreciation — Resale value lost each year under "${a.exitOption}" (trade-in/dealer < private party). Start from the car's market/asking value. depreciation[year] = value at start − value at end; note the start→end value.
+
+Return ONLY raw JSON (no markdown):
+{"carBasis":{"startValue":<num>,"mpg":<num>,"fuelGrade":"Regular|Mid|Premium"},"buckets":{"maintenance":{"method":"<short>","perYear":[{"year":1,"amount":<whole $>,"note":"<work items / math>"}]},"fuel":{"method":"","perYear":[]},"registration":{"method":"","perYear":[]},"tax":{"method":"","perYear":[]},"insurance":{"method":"","perYear":[]},"depreciation":{"method":"","perYear":[]}}}
+Every perYear array MUST have exactly ${a.years} entries. amount = whole dollars.`;
+}
+
+async function computeTCO(id){
+  const c=cars.find(x=>x.id===id);if(!c)return;
+  const apiKey=loadKey();if(!apiKey){alert('Add your Anthropic API key in Settings first.');return}
+  const a=loadAssumptions();
+  tcoComputing.add(id);if(currentView==='tco')render();
+  const ctx={year:c.year,make:c.make,model:c.model,trim:c.trim,mileage:c.mileage,askingPrice:c.askingPrice,estimatedMarketValue:c.estimatedMarketValue,titleStatus:c.titleStatus,reliability:c.reliability,knownIssues:c.knownIssues};
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:3500,system:tcoSystemPrompt(a),messages:[{role:'user',content:'Estimate TCO for this car:\n'+JSON.stringify(ctx)}]})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+res.status)}
+    const resp=await res.json();
+    const txt=resp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const parsed=await robustJSON(txt,apiKey);
+    if(!parsed?.buckets)throw new Error('Could not parse TCO response.');
+    c.tco={computedAt:Date.now(),assumptions:a,carBasis:parsed.carBasis||null,buckets:parsed.buckets,inputs:tcoInputs(c)};
+    c.updatedAt=Date.now();
+    saveCarsLS(cars);
+  }catch(e){alert('TCO failed for '+titleFor(c)+': '+e.message)}
+  finally{tcoComputing.delete(id);if(currentView==='tco')render()}
+  pushToCloud();
+}
+async function computeAllTCO(){for(const c of [...cars]){await computeTCO(c.id)}}
+
+// Incremental update: adjust only the buckets affected by new seller info; keep the rest unchanged.
+async function updateTcoFromCar(id,silent){
+  const c=cars.find(x=>x.id===id);if(!c||!c.tco)return;
+  const diff=tcoInputDiff(c);
+  if(!diff){c.tco.inputs=tcoInputs(c);saveCarsLS(cars);return}
+  const apiKey=loadKey();if(!apiKey){if(!silent)alert('Add your Anthropic API key in Settings first.');return}
+  const a=c.tco.assumptions||loadAssumptions();
+  tcoComputing.add(id);if(currentView==='tco')render();
+  const sys=`You are UPDATING an existing used-car ${a.years}-year TCO estimate because the buyer learned new information about the car. Adjust ONLY the buckets affected by the listed changes; keep every other bucket's per-year numbers EXACTLY as given. Do not re-derive unaffected buckets. Same methodology & assumptions (annual mileage ${a.yearlyMileage}; fuel Regular $${a.fuelRegular}/Mid $${a.fuelMid}/Premium $${a.fuelPremium}; insurance ${a.insuranceCoverage}; exit ${a.exitOption}; Seattle WA).
+Which buckets each change affects: mileage/age/reliability/knownIssues/seller-notes → maintenance; trim/engine → fuel; askingPrice/marketValue → tax, insurance, depreciation; vehicle type/year → registration. A change may affect more than one bucket.
+Return the FULL JSON with all six buckets: {"buckets":{"maintenance":{"method":"","perYear":[{"year":1,"amount":0,"note":""}]},"fuel":{...},"registration":{...},"tax":{...},"insurance":{...},"depreciation":{...}}}. Exactly ${a.years} entries per bucket. Raw JSON only.`;
+  const userMsg=`CURRENT TCO BUCKETS:\n${JSON.stringify(c.tco.buckets)}\n\nUPDATED CAR INFO:\n${JSON.stringify(tcoInputs(c))}\n\nWHAT CHANGED since the estimate was made:\n${diff}\n\nReturn the updated buckets. Keep unaffected numbers identical.`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:3500,system:sys,messages:[{role:'user',content:userMsg}]})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+res.status)}
+    const resp=await res.json();
+    const txt=resp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const parsed=await robustJSON(txt,apiKey);
+    if(!parsed?.buckets)throw new Error('Could not parse update.');
+    const nb=parsed.buckets;
+    // preserve manual web-search refinements
+    TCO_BUCKETS.forEach(bk=>{if(c.tco.buckets[bk.key]?.refined&&nb[bk.key])nb[bk.key].refined=true});
+    c.tco.buckets=nb;c.tco.inputs=tcoInputs(c);c.tco.computedAt=Date.now();c.updatedAt=Date.now();
+    saveCarsLS(cars);
+  }catch(e){if(!silent)alert('TCO update failed for '+titleFor(c)+': '+e.message)}
+  finally{tcoComputing.delete(id);if(currentView==='tco')render()}
+  pushToCloud();
+}
+async function updateAllTcoFromCar(){
+  if(syncEnabled())await pullAndMerge(false); // pick up partner's latest seller info first
+  const need=cars.filter(c=>c.tco&&tcoInputsChanged(c));
+  if(!need.length){render();alert('All TCO estimates already reflect the latest car info — nothing to update.');return}
+  for(const c of [...need]){await updateTcoFromCar(c.id,true)}
+}
+
+// ── Sanity check (Opus low-effort + web search): flags numbers that look off, with a short reason ──
+let tcoSanityRunning=false,tcoSanitySummary=null;
+function countSanityFlags(s){let n=0;s.forEach(c=>{if(c.tco?.buckets)TCO_BUCKETS.forEach(bk=>{if(c.tco.buckets[bk.key]?.sanityFlag)n++})});return n}
+async function runSanityCheck(){
+  const apiKey=loadKey();if(!apiKey){alert('Add your Anthropic API key in Settings first.');return}
+  const tcoCars=cars.filter(c=>c.tco?.buckets);
+  if(!tcoCars.length){alert('Compute TCO for at least one car first.');return}
+  tcoSanityRunning=true;tcoSanitySummary=null;if(currentView==='tco')render();
+  // clear previous flags
+  cars.forEach(c=>{if(c.tco?.buckets)TCO_BUCKETS.forEach(bk=>{if(c.tco.buckets[bk.key])delete c.tco.buckets[bk.key].sanityFlag})});
+  const payload={assumptions:loadAssumptions(),cars:tcoCars.map(c=>({
+    id:c.id,label:[c.year,c.make,c.model,c.trim].filter(Boolean).join(' '),
+    year:c.year,mileage:c.mileage,value:c.estimatedMarketValue??c.askingPrice,basis:c.tco.carBasis||null,
+    avgYearlyCosts:Object.fromEntries(TCO_BUCKETS.map(bk=>[bk.key,Math.round(bucketAvg(c.tco.buckets[bk.key])||0)]))
+  }))};
+  const sys=`You are sanity-checking a used-car Total Cost of Ownership comparison (avg $/year per bucket) for a buyer in Seattle, WA. Quickly flag any numbers that look WRONG — implausible in absolute terms, OR inconsistent relative to the other cars (e.g. a newer/lower-mileage car with higher maintenance, fuel that doesn't fit the MPG/value, depreciation out of line with the car's value, insurance off for the coverage level). This is a fast gut-check: you MAY use web_search sparingly to sanity-check a magnitude, but DO NOT compute precise corrected figures or go deep. Only flag cells that genuinely look off; leave reasonable ones alone.
+For each flagged cell give a 1-2 line reason the buyer can act on.
+Return ONLY raw JSON: {"flags":[{"carId":"<id>","bucket":"maintenance|fuel|registration|tax|insurance|depreciation","reason":"<1-2 lines>"}]}. Empty array if everything looks reasonable.`;
+  const tools=[{type:'web_search_20250305',name:'web_search'}];
+  let messages=[{role:'user',content:'Sanity-check this TCO table:\n'+JSON.stringify(payload)}];
+  const call=async (msgs,useEffort=true)=>{
+    const body={model:'claude-opus-4-8',max_tokens:1800,system:sys,tools,messages:msgs};
+    if(useEffort)body.output_config={effort:'low'}; // low-effort Opus to conserve tokens
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
+    if(!res.ok){const e=await res.json().catch(()=>({}));const msg=e.error?.message||('API error '+res.status);
+      if(useEffort&&/output_config|effort|unexpected|unknown field|not.*support/i.test(msg))return call(msgs,false);
+      throw new Error(msg)}
+    return res.json();
+  };
+  try{
+    let resp=await call(messages),iters=0;
+    while(resp.stop_reason==='tool_use'&&iters<3){
+      iters++;const tus=resp.content.filter(b=>b.type==='tool_use');
+      const tr=tus.map(tu=>({type:'tool_result',tool_use_id:tu.id,content:'(web search executed server-side)'}));
+      messages=[...messages,{role:'assistant',content:resp.content},{role:'user',content:tr}];
+      resp=await call(messages);
+    }
+    const txt=resp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const parsed=await robustJSON(txt,apiKey);
+    const flags=Array.isArray(parsed?.flags)?parsed.flags:[];
+    flags.forEach(f=>{const c=cars.find(x=>x.id===f.carId);const b=c?.tco?.buckets?.[f.bucket];if(b&&f.reason)b.sanityFlag=String(f.reason)});
+    tcoSanitySummary={flagged:flags.length,ts:Date.now()};
+    saveCarsLS(cars);pushToCloud();
+  }catch(e){alert('Sanity check failed: '+e.message)}
+  finally{tcoSanityRunning=false;if(currentView==='tco')render()}
+}
+
+function tcoHTML(s){
+  const a=loadAssumptions();
+  const anyStale=s.some(c=>tcoIsStale(c,a));
+  const needInfo=s.filter(c=>tcoInputsChanged(c));
+  const head=`<th>Cost / year</th>`+s.map(c=>`<th style="min-width:150px">${esc([c.year,c.make,c.model].filter(Boolean).join(' ')||'Car')}${tcoIsStale(c,a)?' <span class="stale-dot" title="assumptions changed">•</span>':''}${tcoInputsChanged(c)?' <span class="newinfo-dot" title="new seller info since last estimate">↻</span>':''}</th>`).join('');
+  const body=TCO_BUCKETS.map(bk=>`<tr><td class="tco-rowlabel">${bk.label}</td>`+s.map(c=>{
+    if(tcoComputing.has(c.id))return '<td class="tco-cell"><span class="spinner"></span></td>';
+    const bkt=c.tco?.buckets?.[bk.key];const av=bucketAvg(bkt);
+    if(av==null)return '<td class="tco-cell tco-empty">—</td>';
+    const flagged=bkt.sanityFlag;
+    return `<td class="tco-cell tco-clickable${flagged?' tco-flagged':''}" onclick="openTcoCell('${c.id}','${bk.key}')">${fmt$(av)}${bkt.refined?'<span class="refined-mark" title="manually refined with web search">🔍</span>':''}${flagged?'<span class="sanity-mark" title="'+esc(bkt.sanityFlag)+'">⚠</span>':''}</td>`;
+  }).join('')+'</tr>').join('');
+  const totalRow=`<tr class="tco-total"><td class="tco-rowlabel">Total / year</td>`+s.map(c=>{
+    if(tcoComputing.has(c.id))return '<td>…</td>';
+    const t=tcoAvgYearly(c.tco);return `<td>${t!=null?fmt$(t):'—'}</td>`;
+  }).join('')+'</tr>';
+  const actionRow=`<tr class="tco-actionrow"><td></td>`+s.map(c=>{
+    if(tcoComputing.has(c.id))return '<td style="text-align:center;font-size:11px;color:#2563eb">working…</td>';
+    if(c.tco&&tcoInputsChanged(c))return `<td style="text-align:center"><button class="btn btn-primary btn-sm" onclick="updateTcoFromCar('${c.id}')" title="apply new seller info">↻ Update info</button></td>`;
+    return `<td style="text-align:center">${c.tco?`<button class="btn btn-ghost btn-sm" onclick="computeTCO('${c.id}')">Recompute</button>`:`<button class="btn btn-primary btn-sm" onclick="computeTCO('${c.id}')">Compute</button>`}</td>`;
+  }).join('')+'</tr>';
+  const sanityBtn=tcoSanityRunning?'<button class="btn btn-ghost btn-sm" disabled><span class="spinner"></span> Checking…</button>':'<button class="btn btn-ghost btn-sm" onclick="runSanityCheck()" title="Opus low-effort + web search: flags numbers that look off">🩺 Sanity check</button>';
+  const toolbar=`<div class="tco-toolbar"><div class="tco-title">4-Year Cost of Ownership <span class="tco-sub">avg $/year · ${esc(a.yearlyMileage.toLocaleString())} mi/yr · Seattle WA</span></div><div class="tco-actions"><button class="btn btn-ghost btn-sm" onclick="openAssumptions()">⚙ Assumptions</button>${sanityBtn}<button class="btn btn-ghost btn-sm" onclick="updateAllTcoFromCar()" title="Pull latest seller info and update affected numbers">↻ Update from car info</button><button class="btn btn-primary btn-sm" onclick="computeAllTCO()">Compute all</button></div></div>`;
+  let notice='';
+  if(needInfo.length)notice+='<div class="tco-newinfo">↻ New seller info since the last estimate for: <strong>'+needInfo.map(c=>esc([c.year,c.make,c.model].filter(Boolean).join(' ')||'Car')).join(', ')+'</strong>. Click <strong>Update from car info</strong> to refresh only the affected costs.</div>';
+  const flagCount=countSanityFlags(s);
+  if(flagCount)notice+='<div class="tco-sanity-note">🩺 Sanity check flagged <strong>'+flagCount+'</strong> number'+(flagCount>1?'s':'')+' (⚠) — click a flagged cell to read why and verify or recalculate.</div>';
+  else if(tcoSanitySummary)notice+='<div class="tco-ok-note">✓ Sanity check passed — all numbers look reasonable relative to each other.</div>';
+  if(anyStale)notice+='<div class="tco-stale">⚠ Assumptions changed since some estimates were computed — click <strong>Compute all</strong> to refresh for an apples-to-apples comparison.</div>';
+  return toolbar+notice+`<div id="compare-wrap" class="tco-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}${totalRow}${actionRow}</tbody></table></div><div class="tco-foot">Click any amount to see the year-by-year assumptions behind it. The same methodology is applied to every car. <strong>↻ Update from car info</strong> only re-estimates buckets affected by new seller details; <strong>Compute all</strong> rebuilds everything.</div>`;
+}
+
+let tcoModalCarId=null,tcoModalBucket=null;
+function openTcoCell(carId,bucketKey){
+  const c=cars.find(x=>x.id===carId);const bk=TCO_BUCKETS.find(b=>b.key===bucketKey);
+  if(!c?.tco?.buckets?.[bucketKey])return;
+  tcoModalCarId=carId;tcoModalBucket=bucketKey;
+  document.getElementById('tco-modal-title').textContent=bk.label+' — '+titleFor(c);
+  document.getElementById('tco-modal-body').innerHTML=tcoCellBodyHTML(c,bucketKey);
+  document.getElementById('tco-modal').style.display='flex';
+}
+function tcoCellBodyHTML(c,bucketKey){
+  const b=c.tco.buckets[bucketKey];
+  const rows=(b.perYear||[]).map(p=>`<tr><td style="white-space:nowrap">Year ${p.year}</td><td style="text-align:right;font-weight:600;white-space:nowrap">${fmt$(Number(p.amount)||0)}</td><td class="tco-note">${esc(p.note||'')}</td></tr>`).join('');
+  const av=bucketAvg(b);
+  return `${b.sanityFlag?'<div class="tco-sanity">⚠ <strong>Sanity check:</strong> '+esc(b.sanityFlag)+'</div>':''}${b.refined?'<div class="tco-refined">🔍 Manually refined with web search</div>':''}${b.method?'<div class="tco-method"><strong>How it’s estimated:</strong> '+esc(b.method)+'</div>':''}<table class="tco-detail-table"><thead><tr><th></th><th style="text-align:right">Cost</th><th>Assumptions for that year</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td><strong>Avg / yr</strong></td><td style="text-align:right"><strong>${fmt$(av||0)}</strong></td><td></td></tr></tfoot></table>
+  <div class="tco-recalc">
+    <div class="section-title">Recalculate this number</div>
+    <div class="hint" style="margin:0 0 8px">Looks off? Describe what's wrong — this runs a deeper <strong>Sonnet + web-search</strong> pass to re-estimate just this row (costs more than the base estimate).</div>
+    <textarea id="tco-recalc-comment" class="notes-area" rows="3" placeholder="e.g. This trim takes regular, not premium. Insurance is too high for liability-only on a 10-yr-old car. Maintenance should include the timing belt due around 105k miles."></textarea>
+    <button class="btn btn-primary btn-sm" id="tco-recalc-btn" style="margin-top:8px;width:100%" onclick="recalcTcoBucket()">🔍 Recalculate with web search</button>
+    <div id="tco-recalc-status" style="display:none;align-items:center;gap:8px;font-size:12px;color:#2563eb;margin-top:8px"></div>
+  </div>`;
+}
+function closeTcoModal(){document.getElementById('tco-modal').style.display='none'}
+
+function tcoBucketSystemPrompt(a,bk){
+  const guide={
+    maintenance:'Recompute MAINTENANCE: given this exact make/model/trim/age/mileage, list the scheduled service + wear items actually due in each year (oil, tires, brakes, fluids, timing belt/chain, spark plugs, known-issue repairs) and price them at current Seattle indie-shop parts+labor rates. Search the model\'s maintenance schedule and common-repair costs.',
+    fuel:'Recompute FUEL: search the EPA combined MPG for this exact year/trim and its required fuel grade. fuel = annualMiles ÷ MPG × the assumed price for that grade.',
+    registration:'Recompute REGISTRATION: search current WA/King County annual registration fees for this vehicle (base, weight fee, transportation fee, EV/hybrid surcharges).',
+    tax:'Recompute TAX: search current WA RTA/MVET excise methodology and rate; apply to the vehicle\'s depreciated value each year.',
+    insurance:'Recompute INSURANCE: search typical Seattle, WA annual premiums for the "'+a.insuranceCoverage+'" coverage level on this specific vehicle (value, type, theft rate).',
+    depreciation:'Recompute DEPRECIATION: search current resale/'+a.exitOption+' values for this exact year/make/model/trim/mileage; project value each year. depreciation[year] = value at start − value at end.'
+  };
+  return `You are refining ONE cost bucket of a used-car ${a.years}-year Total Cost of Ownership estimate for a buyer in Seattle, WA (King County, RTA district). Recompute ONLY the "${bk.label}" bucket, per year for ${a.years} years, keeping the SAME methodology as the rest of the model so it stays comparable across cars. Use web_search to ground every figure in current, real-world data, then incorporate the buyer's feedback.
+Fixed assumptions: annual mileage ${a.yearlyMileage} mi; fuel/gal Regular $${a.fuelRegular} / Mid $${a.fuelMid} / Premium $${a.fuelPremium} (use the grade this car requires); insurance ${a.insuranceCoverage}; exit ${a.exitOption}.
+${guide[bk.key]||''}
+Return ONLY raw JSON for this single bucket (no markdown): {"method":"<short, cite the key figure you found>","perYear":[{"year":1,"amount":<whole $>,"note":"<reasoning incl. the real figure/source>"}]} with exactly ${a.years} entries.`;
+}
+
+async function recalcTcoBucket(){
+  const c=cars.find(x=>x.id===tcoModalCarId);const bucketKey=tcoModalBucket;
+  if(!c||!bucketKey)return;
+  const bk=TCO_BUCKETS.find(b=>b.key===bucketKey);
+  const comment=document.getElementById('tco-recalc-comment')?.value.trim();
+  const apiKey=loadKey();
+  if(!apiKey){alert('Add your Anthropic API key in Settings first.');return}
+  const a=c.tco.assumptions||loadAssumptions();
+  const btn=document.getElementById('tco-recalc-btn');
+  const statusEl=document.getElementById('tco-recalc-status');
+  if(btn)btn.disabled=true;
+  const setS=m=>{if(statusEl){statusEl.style.display='flex';statusEl.style.color='#2563eb';statusEl.innerHTML='<span class="spinner"></span> '+m}};
+  setS('Searching & recalculating…');
+
+  const carCtx={year:c.year,make:c.make,model:c.model,trim:c.trim,mileage:c.mileage,askingPrice:c.askingPrice,estimatedMarketValue:c.estimatedMarketValue,titleStatus:c.titleStatus,reliability:c.reliability,knownIssues:c.knownIssues};
+  const userMsg=`CAR:\n${JSON.stringify(carCtx)}\n\nCURRENT "${bk.label}" ESTIMATE (to verify/correct):\n${JSON.stringify(c.tco.buckets[bucketKey])}\n\nBUYER FEEDBACK on what seems off:\n${comment||'(no specific comment — re-verify this bucket against current real-world data)'}\n\nUse web_search for accurate current figures, then return the corrected bucket JSON.`;
+  const tools=[{type:'web_search_20250305',name:'web_search'}];
+  let messages=[{role:'user',content:userMsg}];
+  const call=async msgs=>{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-beta':'web-search-2025-03-05','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:2500,system:tcoBucketSystemPrompt(a,bk),tools,messages:msgs})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+res.status)}
+    return res.json();
+  };
+  try{
+    let resp=await call(messages),iters=0;
+    while(resp.stop_reason==='tool_use'&&iters<4){
+      iters++;setS('Searching the web… ('+iters+')');
+      const tus=resp.content.filter(b=>b.type==='tool_use');
+      const tr=tus.map(tu=>({type:'tool_result',tool_use_id:tu.id,content:'(web search executed server-side)'}));
+      messages=[...messages,{role:'assistant',content:resp.content},{role:'user',content:tr}];
+      resp=await call(messages);
+    }
+    const txt=resp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const parsed=await robustJSON(txt,apiKey);
+    const updated=parsed?.perYear?parsed:(parsed?.bucket||parsed?.[bucketKey]);
+    if(!updated?.perYear)throw new Error('Could not parse recalculation.');
+    updated.refined=true;
+    c.tco.buckets[bucketKey]=updated;
+    c.tco.computedAt=Date.now();c.updatedAt=Date.now();
+    saveCarsLS(cars);
+    document.getElementById('tco-modal-body').innerHTML=tcoCellBodyHTML(c,bucketKey);
+    if(currentView==='tco')render();
+    pushToCloud();
+  }catch(e){
+    if(statusEl){statusEl.style.color='#dc2626';statusEl.innerHTML='Failed: '+esc(e.message)}
+    if(btn)btn.disabled=false;
+  }
+}
+
+// ── Interactions ──────────────────────────────────────────────────────────────
+function setView(v){
+  currentView=v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.textContent.toLowerCase()===v));
+  render()
+}
+// Collapsible section: native <details>, open-state remembered in openSections across renders
+function sect(id,name,title,inner){
+  if(!inner)return'';
+  const key=id+'::'+name;
+  return`<details class="sect"${openSections.has(key)?' open':''} ontoggle="toggleSection('${key}',this.open)"><summary>${title}</summary><div class="sect-body">${inner}</div></details>`;
+}
+function toggleSection(key,open){if(open)openSections.add(key);else openSections.delete(key)}
+
+// Top-of-card action plan: target price, negotiation, next steps
+function actionPlanHTML(c){
+  const a=c.actionPlan;if(!a)return'';
+  const steps=Array.isArray(a.nextSteps)?a.nextSteps.map(flagText).filter(Boolean):[];
+  if(a.targetPrice==null&&!a.negotiation&&!steps.length)return'';
+  let h='<div class="action-plan"><div class="ap-head">🎯 Game plan</div>';
+  if(a.targetPrice!=null)h+='<div class="ap-target">Target price: <strong>'+fmt$(a.targetPrice)+'</strong>'+(c.askingPrice&&a.targetPrice<c.askingPrice?' <span class="ap-save">(ask '+fmt$(c.askingPrice)+')</span>':'')+'</div>';
+  if(a.negotiation)h+='<div class="ap-nego">'+esc(a.negotiation)+'</div>';
+  if(steps.length)h+='<div class="ap-steps"><div class="ap-steps-label">Next steps</div><ol>'+steps.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ol></div>';
+  h+='</div>';
+  return h;
+}
+function fmtNoteTs(ts){
+  try{return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+new Date(ts).toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'})}
+  catch{return''}
+}
+function noteLogHTML(c){
+  const log=noteLogOf(c);
+  if(!log.length)return'';
+  return'<div class="note-log">'+log.map(n=>'<div class="note-entry"><div class="note-ts">'+esc(fmtNoteTs(n.ts))+'</div><div class="note-text">'+esc(n.text)+'</div></div>').join('')+'</div>';
+}
+function saveDraft(id,val){
+  const c=cars.find(x=>x.id===id);
+  if(c){c.noteDraft=val;saveCarsLS(cars)}
+}
+
+// ── Per-car chat ──────────────────────────────────────────────────────────────
+function chatHTML(c){
+  const log=Array.isArray(c.chatLog)?c.chatLog:[];
+  if(!log.length)return'<div class="chat-empty">Ask anything about this car — pricing, reliability, what to inspect, negotiation. I have all of this car’s details as context.</div>';
+  return'<div class="chat-msgs" id="chat-msgs-'+c.id+'">'+log.map(m=>'<div class="chat-msg chat-'+(m.role==='user'?'user':'bot')+'"><div class="chat-bubble">'+esc(m.text)+'</div></div>').join('')+'</div>';
+}
+function saveChatDraft(id,val){const c=cars.find(x=>x.id===id);if(c){c.chatDraft=val;saveCarsLS(cars)}}
+
+async function askCarQuestion(id){
+  const c=cars.find(x=>x.id===id);if(!c)return;
+  const q=document.getElementById('chat-input-'+id)?.value.trim();
+  if(!q)return;
+  const apiKey=loadKey();
+  if(!apiKey){alert('Add your Anthropic API key in Settings first.');return}
+  c.chatLog=Array.isArray(c.chatLog)?c.chatLog:[];
+  c.chatLog.push({role:'user',text:q,ts:Date.now()});
+  c.chatDraft='';
+  saveCarsLS(cars);
+  render();
+  const statusEl=document.getElementById('chat-status-'+id);if(statusEl)statusEl.style.display='flex';
+  scrollChat(id);
+  // full car record (minus chat) as context
+  const ctx={...c};delete ctx.chatLog;delete ctx.chatDraft;
+  const sys=`You are an assistant helping a used-car buyer in Seattle, WA evaluate ONE specific car from Facebook Marketplace. Answer the buyer's questions using the car data below plus your general automotive knowledge (reliability, common problems, fair pricing, inspection, negotiation). Be concise, practical and direct — a few sentences. If the data doesn't contain the answer, say what's unknown and how to find out (ask the seller, check the VIN, get a pre-purchase inspection).
+
+CAR DATA (JSON):
+${JSON.stringify(ctx)}`;
+  const msgs=c.chatLog.map(m=>({role:m.role,content:m.text}));
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1024,system:sys,messages:msgs})});
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+res.status)}
+    const resp=await res.json();
+    const txt=resp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+    c.chatLog.push({role:'assistant',text:txt||'(no response)',ts:Date.now()});
+    saveCarsLS(cars);render();scrollChat(id);pushToCloud();
+  }catch(e){
+    c.chatLog.push({role:'assistant',text:'⚠ '+e.message,ts:Date.now()});
+    saveCarsLS(cars);render();scrollChat(id);
+  }
+}
+function scrollChat(id){
+  const mc=document.getElementById('chat-msgs-'+id);if(mc)mc.scrollTop=mc.scrollHeight;
+  document.getElementById('chat-input-'+id)?.focus();
+}
+
+async function quickUpdate(id){
+  const c=cars.find(x=>x.id===id);
+  if(!c)return;
+  const notes=document.getElementById('notes-'+id)?.value.trim();
+  if(!notes){alert('Add some notes from your seller conversation first.');return}
+  const apiKey=loadKey();
+  if(!apiKey){alert('Add your Anthropic API key in Settings first.');return}
+
+  const btn=document.getElementById('quick-update-btn-'+id);
+  const statusEl=document.getElementById('quick-update-status-'+id);
+  btn.disabled=true;btn.textContent='Updating…';
+  statusEl.style.color='#2563eb';statusEl.style.display='block';statusEl.textContent='Sending to Claude…';
+
+  // strip heavy fields to keep prompt small
+  const prev={...c};delete prev.listingText;delete prev.noteDraft;delete prev.noteLog;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({
+        model:'claude-haiku-4-5-20251001',
+        max_tokens:2048,
+        system:SYSTEM,
+        messages:[{role:'user',content:`You previously analyzed this car. Existing analysis JSON:\n${JSON.stringify(prev)}\n\nNew info from the buyer's seller conversation:\n${notes}\n\nReturn an updated JSON object, same schema. Re-score and update riskFlags, greenFlags, actionPlan, sellerQuestions, and summary. For any risk flag now resolved/mitigated by this info, set its status to "addressed" (keep it, don't delete). Add new green flags if the info reveals positives. Refresh the actionPlan (targetPrice/negotiation/nextSteps) to reflect what's now known. No duplicate facts across flags/summary/plan. Keep terse. Return ONLY raw JSON, no markdown.`}]
+      })
+    });
+    if(!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||'API error '+res.status)}
+    const resp=await res.json();
+    const txt=resp.content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+    const parsed=await robustJSON(txt,apiKey);
+    if(!parsed)throw new Error('Could not parse response.');
+
+    const newLog=[...noteLogOf(c),{text:notes,ts:Date.now()}];
+    const updated={...c,...parsed,id:c.id,createdAt:c.createdAt,updatedAt:Date.now(),listingText:c.listingText,noteLog:newLog,noteDraft:''};
+    cars=cars.map(x=>x.id===id?updated:x);
+    saveCarsLS(cars);
+    statusEl.textContent='';statusEl.style.display='none';
+    render();
+    await pushToCloud();
+  }catch(e){
+    statusEl.style.color='#dc2626';statusEl.textContent='Failed: '+e.message;
+    btn.disabled=false;btn.textContent='⚡ Log note & update analysis';
+  }
+}
+function deleteCar(id){
+  if(!confirm('Delete this car?'))return;
+  cars=cars.filter(c=>c.id!==id);
+  saveCarsLS(cars);idbDelFiles(id);
+  render();pushToCloud();
+}
+async function reanalyze(id){
+  editCarId=id;const c=cars.find(x=>x.id===id);
+  document.getElementById('listing-text').value=c?.listingText||'';
+  // pre-fill ALL prior notes (logged conversations + current draft) so nothing is retyped
+  const prior=noteLogOf(c).map(n=>n.text);
+  if((c?.noteDraft||'').trim())prior.push(c.noteDraft.trim());
+  document.getElementById('seller-followup').value=prior.join('\n\n');
+  document.getElementById('seller-followup-field').style.display='block';
+  document.getElementById('listing-text').rows=4;
+  document.getElementById('add-modal-title').textContent='Update analysis — '+titleFor(c);
+  clearStatus();
+  // pre-attach previously uploaded documents
+  pendingFiles=[];renderFileChips();
+  document.getElementById('add-modal').style.display='flex';
+  pendingFiles=await idbGetFiles(id);
+  renderFileChips();
+}
+
+// ── Add modal ─────────────────────────────────────────────────────────────────
+function openAddModal(){editCarId=null;document.getElementById('listing-text').value='';document.getElementById('listing-text').rows=7;document.getElementById('seller-followup').value='';document.getElementById('seller-followup-field').style.display='none';document.getElementById('add-modal-title').textContent='Add a Car';pendingFiles=[];renderFileChips();clearStatus();document.getElementById('add-modal').style.display='flex'}
+function closeAddModal(){document.getElementById('add-modal').style.display='none'}
+function handleDrop(e){e.preventDefault();document.getElementById('dropzone').classList.remove('drag');addFiles(e.dataTransfer.files)}
+async function addFiles(fl){
+  const valid=Array.from(fl).filter(f=>f.type.startsWith('image/')||f.type==='application/pdf'||/\.(jpg|jpeg|png|webp|gif|pdf)$/i.test(f.name));
+  for(const f of valid){
+    try{const b64=await fileToB64(f);pendingFiles.push({name:f.name,type:mediaType(f),b64})}
+    catch(e){console.warn('Could not read file',f.name,e)}
+  }
+  renderFileChips();
+}
+function removeFile(i){pendingFiles.splice(i,1);renderFileChips()}
+function renderFileChips(){document.getElementById('file-chips').innerHTML=pendingFiles.map((f,i)=>`<div class="file-chip"><span style="max-width:140px;overflow:hidden;text-overflow:ellipsis">${esc(f.name)}</span><button onclick="removeFile(${i})">×</button></div>`).join('')}
+function setStatus(msg){document.getElementById('status-bar').style.display='flex';document.getElementById('status-text').textContent=msg}
+function clearStatus(){document.getElementById('status-bar').style.display='none';document.getElementById('error-bar').style.display='none';document.getElementById('error-bar').textContent=''}
+function showError(msg){document.getElementById('error-bar').style.display='block';document.getElementById('error-bar').textContent=msg;document.getElementById('status-bar').style.display='none'}
+
+async function runAnalysis(){
+  const text=document.getElementById('listing-text').value.trim();
+  const followup=document.getElementById('seller-followup').value.trim();
+  const apiKey=loadKey();
+  if(!text&&!pendingFiles.length){showError('Paste listing text or upload a document.');return}
+  if(!apiKey){showError('Add your Anthropic API key in Settings first.');return}
+  clearStatus();document.getElementById('analyze-btn').disabled=true;
+  try{
+    const existing=editCarId?cars.find(c=>c.id===editCarId):null;
+    const data=await analyzeCar(apiKey,text,pendingFiles,setStatus,followup||null,existing||null);
+    // On re-analyze the followup box already holds ALL prior notes (pre-filled), so
+    // consolidate it into a single up-to-date note entry instead of appending (no dupes).
+    const newLog=followup?[{text:followup,ts:Date.now()}]:(existing?noteLogOf(existing):[]);
+    const car={id:existing?.id||uid(),createdAt:existing?.createdAt||Date.now(),updatedAt:Date.now(),listingText:text,noteLog:newLog,noteDraft:'',docCount:pendingFiles.length,...data};
+    if(existing){cars=cars.map(c=>c.id===car.id?car:c)}else{cars.push(car)}
+    saveCarsLS(cars);
+    await idbPutFiles(car.id,pendingFiles); // persist attached documents locally
+    closeAddModal();render();
+    await pushToCloud();
+  }catch(e){showError(e.message||'Analysis failed. Check your API key and try again.')}
+  finally{document.getElementById('analyze-btn').disabled=false;document.getElementById('status-bar').style.display='none'}
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById('api-key-input').value=loadKey();
+  document.getElementById('jb-key-input').value=loadJBKey();
+  document.getElementById('jb-bin-input').value=loadJBBin();
+  document.getElementById('sync-test-result').textContent='';
+  document.getElementById('settings-modal').style.display='flex'
+}
+function closeSettings(){document.getElementById('settings-modal').style.display='none'}
+function saveSettings(){
+  const k=document.getElementById('api-key-input').value.trim();
+  const jbk=document.getElementById('jb-key-input').value.trim();
+  const jbb=document.getElementById('jb-bin-input').value.trim();
+  saveKey(k);saveJB(jbk,jbb);
+  document.getElementById('settings-btn').classList.toggle('warn',!k);
+  closeSettings();
+  if(syncEnabled()){pullAndMerge(true)}else{setSyncPill(null)}
+}
+
+// ── Assumptions modal ─────────────────────────────────────────────────────────
+function openAssumptions(){
+  const a=loadAssumptions();
+  document.getElementById('as-mileage').value=a.yearlyMileage;
+  document.getElementById('as-regular').value=a.fuelRegular;
+  document.getElementById('as-mid').value=a.fuelMid;
+  document.getElementById('as-premium').value=a.fuelPremium;
+  document.getElementById('as-insurance').value=a.insuranceCoverage;
+  document.getElementById('as-exit').value=a.exitOption;
+  document.getElementById('as-years').value=a.years;
+  document.getElementById('assumptions-modal').style.display='flex';
+}
+function closeAssumptions(){document.getElementById('assumptions-modal').style.display='none'}
+function saveAssumptionsForm(){
+  const a={
+    yearlyMileage:Number(document.getElementById('as-mileage').value)||DEFAULT_ASSUMPTIONS.yearlyMileage,
+    fuelRegular:Number(document.getElementById('as-regular').value)||DEFAULT_ASSUMPTIONS.fuelRegular,
+    fuelMid:Number(document.getElementById('as-mid').value)||DEFAULT_ASSUMPTIONS.fuelMid,
+    fuelPremium:Number(document.getElementById('as-premium').value)||DEFAULT_ASSUMPTIONS.fuelPremium,
+    insuranceCoverage:document.getElementById('as-insurance').value,
+    exitOption:document.getElementById('as-exit').value,
+    years:Math.max(1,Math.min(8,Number(document.getElementById('as-years').value)||4))
+  };
+  saveAssumptions(a);
+  closeAssumptions();
+  if(currentView==='tco')render();
+}
+
+document.getElementById('add-modal').addEventListener('click',function(e){if(e.target===this)closeAddModal()});
+document.getElementById('settings-modal').addEventListener('click',function(e){if(e.target===this)closeSettings()});
+document.getElementById('assumptions-modal').addEventListener('click',function(e){if(e.target===this)closeAssumptions()});
+document.getElementById('tco-modal').addEventListener('click',function(e){if(e.target===this)closeTcoModal()});
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+(async function init(){
+  const hasKey=!!loadKey();
+  document.getElementById('settings-btn').classList.toggle('warn',!hasKey);
+  if(syncEnabled()){await pullAndMerge(false)}
+  render();
+  if(syncEnabled())setSyncPill('ok','Synced');
+  if(!hasKey)openSettings();
+})();
+</script>
+</body>
+</html>
