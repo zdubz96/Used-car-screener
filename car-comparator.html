@@ -581,14 +581,20 @@ async function jbPut(data){
   if(!res.ok)throw new Error('Write failed ('+res.status+'): '+await jbErrBody(res));
 }
 
-// Merge remote into local: remote wins on conflicts, keep union of IDs
+// Heavy/local-only fields stripped before syncing to keep the JSONBin payload small
+const SYNC_OMIT=['listingText','chatLog','noteDraft','chatDraft'];
+function slimCar(c){const o={...c};SYNC_OMIT.forEach(k=>delete o[k]);return o}
+
+// Merge remote into local. On conflict, remote (may be slim) wins field-by-field but
+// LOCAL-ONLY fields it omits (e.g. listingText, chatLog) are preserved — so pulling a
+// slimmed copy back never wipes the full data this device still holds.
 function mergeCars(local,remote){
   const map=new Map();
   local.forEach(c=>map.set(c.id,c));
   remote.forEach(c=>{
     const existing=map.get(c.id);
-    // remote wins if it's newer, or if local doesn't have it
-    if(!existing||c.updatedAt>existing.updatedAt) map.set(c.id,c);
+    if(!existing){map.set(c.id,c)}
+    else if((c.updatedAt||0)>(existing.updatedAt||0)){map.set(c.id,{...existing,...c})}
   });
   return migrateCars([...map.values()]);
 }
@@ -600,8 +606,8 @@ async function pushToCloud(showPill=true){
     // pull first to avoid clobbering partner's changes, then merge, then push
     const remote=await jbGet();
     const merged=mergeCars(cars,remote);
-    await jbPut(merged);
-    cars=merged;saveCarsLS(cars);
+    await jbPut(merged.map(slimCar)); // push slimmed copies to stay under the free-plan size cap
+    cars=merged;saveCarsLS(cars);     // keep the full data locally
     if(showPill)setSyncPill('ok','Synced');
   }catch(e){
     console.error(e);
