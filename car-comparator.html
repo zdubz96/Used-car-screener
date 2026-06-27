@@ -554,16 +554,19 @@ function setSyncPill(state,text){
   t.textContent=text||'';
 }
 
+async function jbErrBody(res){
+  try{const t=await res.text();try{const j=JSON.parse(t);return j.message||j.error||t}catch{return t}}catch{return ''}
+}
 async function jbGet(){
   const res=await fetch(`https://api.jsonbin.io/v3/b/${loadJBBin()}/latest`,{headers:{'X-Master-Key':loadJBKey()}});
-  if(!res.ok)throw new Error('JSONBin read failed: '+res.status);
+  if(!res.ok)throw new Error('Read failed ('+res.status+'): '+await jbErrBody(res));
   const d=await res.json();
   return Array.isArray(d.record)?d.record:[];
 }
 
 async function jbPut(data){
-  const res=await fetch(`https://api.jsonbin.io/v3/b/${loadJBBin()}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':loadJBKey()},body:JSON.stringify(data)});
-  if(!res.ok)throw new Error('JSONBin write failed: '+res.status);
+  const res=await fetch(`https://api.jsonbin.io/v3/b/${loadJBBin()}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':loadJBKey(),'X-Bin-Versioning':'false'},body:JSON.stringify(data)});
+  if(!res.ok)throw new Error('Write failed ('+res.status+'): '+await jbErrBody(res));
 }
 
 // Merge remote into local: remote wins on conflicts, keep union of IDs
@@ -591,6 +594,7 @@ async function pushToCloud(showPill=true){
   }catch(e){
     console.error(e);
     if(showPill)setSyncPill('err','Sync failed');
+    const p=document.getElementById('sync-pill');if(p)p.title=String(e.message||e);
   }
 }
 
